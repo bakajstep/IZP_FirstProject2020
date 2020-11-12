@@ -1,12 +1,19 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #define MAX_BUFF 10241
 #define ERROR -1
 #define LOWER 1
 #define UPPER 2
 #define BETWEEN(value, min, max) (value <= max && value >= min)
+
+int round_number(double number)
+{
+    double tmp = number - (int)number;
+    return tmp < 0.5 ? (int)number : (int)number + 1;
+}
 
 char lower(char character)
 {
@@ -208,7 +215,7 @@ void cset(char buff[], int number, char string[], char delim[])
     while (buff[i] != '\0')
     {
 
-        if (number == column && tmp_done == 0)
+        if (number == 1 && number == column && tmp_done == 0)
         {
             int k = 0;
             while (string[k] != '\0')
@@ -225,9 +232,25 @@ void cset(char buff[], int number, char string[], char delim[])
             if (delim[j] == buff[i])
             {
                 column++;
-                tmp_buff[position_buff++] = buff[i++];
+                //tmp_buff[position_buff++] = buff[i++];
             }
             j++;
+        }
+
+        if (number == column && tmp_done == 0)
+        {
+            if (number != 1)
+            {
+                tmp_buff[position_buff++] = delim[0];
+            }
+
+            int k = 0;
+            while (string[k] != '\0')
+            {
+                tmp_buff[position_buff++] = string[k++];
+            }
+            //tmp done nastavime na hodnotu jinou od nuly aby jsme poznali zda jsme provedli zapis
+            tmp_done = 1;
         }
 
         if (number != column)
@@ -281,14 +304,7 @@ void change_case(char buff[], int number, char delim[], int state)
 
         if (column == number)
         {
-            if (state == LOWER)
-            {
-                tmp_buff[position_buff++] = lower(buff[i]);
-            }
-            else if (state == UPPER)
-            {
-                tmp_buff[position_buff++] = upper(buff[i]);
-            }  
+            tmp_buff[position_buff++] = state == LOWER ? lower(buff[i]) : upper(buff[i]);
         }
         else
         {
@@ -308,6 +324,46 @@ void change_case(char buff[], int number, char delim[], int state)
 
     tmp_buff[position_buff] = '\0';
     strcpy(buff, tmp_buff);
+    return;
+}
+
+void get_column(char buff[], int number, char delim[], char input[])
+{
+    char tmp_column[MAX_BUFF];
+    int column = 1;
+    int position = 0;
+
+    int i = 0;
+    while (buff[i] != '\0')
+    {
+        if (column == number)
+        {
+            tmp_column[position++] = buff[i];
+        }
+
+        int j = 0;
+        while (delim[j] != '\0')
+        {
+            if (delim[j] == buff[i])
+            {
+                column++;
+            }
+            j++;
+        }
+        i++;
+    }
+
+    // osetreni pokud by byl posledni radek prazdny
+    if (position == 0)
+    {
+        tmp_column[position] = '\0';
+    }
+    else
+    {
+        tmp_column[position - 1] = '\0';
+    }
+
+    strcpy(input, tmp_column);
     return;
 }
 
@@ -425,6 +481,69 @@ int main(int argc, char *argv[])
             else if (strcmp(argv[i], "toupper") == 0)
             {
                 change_case(buff, atoi(argv[i + 1]), delim, UPPER);
+            }
+            else if (strcmp(argv[i], "round") == 0)
+            {
+                char input[101];
+                get_column(buff, atoi(argv[i + 1]), delim, input);
+                //zjistujem zda v bunce mame vubec desetinny cislo
+                if (strstr(input, ".") != NULL)
+                {
+                    // osetrujem jestli ta bunka ma v sobe jen desetinny cislo
+                    atof(input) == 0 ? input : sprintf(input, "%d", round_number(atof(input)));
+                    cset(buff, atoi(argv[i + 1]), input, delim);
+                }
+                else
+                {
+                    cset(buff, atoi(argv[i + 1]), input, delim);
+                }
+            }
+            else if (strcmp(argv[i], "int") == 0)
+            {
+                char input[101];
+                get_column(buff, atoi(argv[i + 1]), delim, input);
+
+                if (atof(input) != 0)
+                {
+                    sprintf(input, "%d", (int)atof(input));
+                    cset(buff, atoi(argv[i + 1]), input, delim);
+                }
+                else
+                {
+                    cset(buff, atoi(argv[i + 1]), input, delim);
+                }
+            }
+            else if (strcmp(argv[i], "copy") == 0)
+            {
+                char n[101];
+                get_column(buff, atoi(argv[i + 1]), delim, n);
+                cset(buff, atoi(argv[i + 2]), n, delim);
+            }
+            else if (strcmp(argv[i], "swap") == 0)
+            {
+                char n[101];
+                get_column(buff, atoi(argv[i + 1]), delim, n);
+                char m[101];
+                get_column(buff, atoi(argv[i + 2]), delim, m);
+                cset(buff, atoi(argv[i + 2]), n, delim);
+                cset(buff, atoi(argv[i + 1]), m, delim);
+            }
+            else if (strcmp(argv[i], "move") == 0)
+            {
+                char n[101];
+                get_column(buff, atoi(argv[i + 1]), delim, n);
+                if (atoi(argv[i + 1]) <= atoi(argv[i + 2]))
+                {
+                    insert_cell(buff, atoi(argv[i + 2]), delim);
+                    cset(buff, atoi(argv[i + 2]), n, delim);
+                    delete_colls(buff, atoi(argv[i + 1]), atoi(argv[i + 1]), delim);
+                }
+                else
+                {
+                    insert_cell(buff, atoi(argv[i + 2]), delim);
+                    cset(buff, atoi(argv[i + 2]), n, delim);
+                    delete_colls(buff, atoi(argv[i + 1]) + 1, atoi(argv[i + 1]) + 1, delim);
+                }
             }
         }
         if (print == 1)
